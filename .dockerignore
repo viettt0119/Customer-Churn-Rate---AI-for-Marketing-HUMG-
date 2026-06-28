@@ -1,0 +1,17 @@
+.git
+.gitignore
+.idea
+.vscode
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.env
+.ipynb_checkpoints/
+mlruns/
+models/best_churn_model.pkl
+models/Churn Model.ipynb
+sample.ipynb
+Trí tuệ nhân tạo trong Marketing- Nhóm 1.docx
+Dockerfile
+.dockerignore
