@@ -12,10 +12,13 @@ Author: Trần Tuấn Việt (MSSV: 2221050021)
 import os
 import logging
 from typing import Dict, Any
+from contextlib import asynccontextmanager
 import joblib
 import pandas as pd
 import numpy as np
 from fastapi import FastAPI, HTTPException, status
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
 # Cấu hình logging
@@ -25,13 +28,6 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Khởi tạo FastAPI
-app = FastAPI(
-    title="Customer Churn Prediction API",
-    description="API dự đoán tỷ lệ rời bỏ của khách hàng (Customer Churn Rate) - AI for Marketing",
-    version="1.0.0"
-)
-
 # Đường dẫn file model đã huấn luyện
 MODEL_PATH = "models/best_churn_model.pkl"
 
@@ -39,34 +35,13 @@ MODEL_PATH = "models/best_churn_model.pkl"
 model_artifact = None
 
 # ============================================================================
-# Định nghĩa Pydantic Schemas cho Input/Output Validation
+# Quản lý vòng đời ứng dụng (Lifespan)
 # ============================================================================
 
-class CustomerInput(BaseModel):
-    CreditScore: int = Field(..., ge=300, le=850, description="Điểm tín dụng của khách hàng", example=619)
-    Geography: str = Field(..., description="Quốc gia của khách hàng (France, Germany, Spain)", example="France")
-    Gender: str = Field(..., description="Giới tính của khách hàng (Male, Female)", example="Female")
-    Age: int = Field(..., ge=18, le=100, description="Tuổi của khách hàng", example=42)
-    Tenure: int = Field(..., ge=0, le=10, description="Số năm gắn bó của khách hàng với ngân hàng", example=2)
-    Balance: float = Field(..., ge=0.0, description="Số dư tài khoản", example=0.0)
-    NumOfProducts: int = Field(..., ge=1, le=4, description="Số lượng sản phẩm khách hàng đang sử dụng", example=1)
-    HasCrCard: int = Field(..., ge=0, le=1, description="Khách hàng có thẻ tín dụng hay không (0: Không, 1: Có)", example=1)
-    IsActiveMember: int = Field(..., ge=0, le=1, description="Khách hàng có hoạt động tích cực không (0: Không, 1: Có)", example=1)
-    EstimatedSalary: float = Field(..., ge=0.0, description="Mức lương ước tính hàng năm", example=101348.88)
-
-class PredictionOutput(BaseModel):
-    churn: str = Field(..., description="Kết quả dự đoán rời bỏ (Yes: Rời bỏ, No: Ở lại)")
-    probability: float = Field(..., description="Xác suất rời bỏ của khách hàng (từ 0.0 đến 1.0)")
-    model_name: str = Field(..., description="Tên mô hình học máy được sử dụng để dự đoán")
-
-# ============================================================================
-# Startup Event: Load Model & Scaler
-# ============================================================================
-
-@app.on_event("startup")
-def load_model():
+@asynccontextmanager
+async def lifespan(app: FastAPI):
     """
-    Tự động load mô hình tốt nhất cùng scaler và metadata khi FastAPI server khởi chạy.
+    Quản lý vòng đời (lifespan) của FastAPI: load mô hình khi khởi động.
     """
     global model_artifact
     logger.info("Đang khởi động ứng dụng...")
@@ -76,17 +51,48 @@ def load_model():
             f"Không tìm thấy file mô hình tại '{MODEL_PATH}'. "
             "Vui lòng chạy script huấn luyện trước: 'python -m src.train'"
         )
-        return
-        
-    try:
-        model_artifact = joblib.load(MODEL_PATH)
-        logger.info(
-            f"Đã load thành công mô hình '{model_artifact.get('model_name')}' từ '{MODEL_PATH}'."
-        )
-        logger.info(f"Độ đo F1-weighted khi huấn luyện: {model_artifact.get('metrics', {}).get('f1_score_weighted', 'N/A')}")
-    except Exception as e:
-        logger.error(f"Lỗi khi load mô hình: {str(e)}")
-        raise e
+    else:
+        try:
+            model_artifact = joblib.load(MODEL_PATH)
+            logger.info(
+                f"Đã load thành công mô hình '{model_artifact.get('model_name')}' từ '{MODEL_PATH}'."
+            )
+            logger.info(f"Độ đo F1-weighted khi huấn luyện: {model_artifact.get('metrics', {}).get('f1_score_weighted', 'N/A')}")
+        except Exception as e:
+            logger.error(f"Lỗi khi load mô hình: {str(e)}")
+            raise e
+    yield
+
+# Khởi tạo FastAPI
+app = FastAPI(
+    title="Customer Churn Prediction API",
+    description="API dự đoán tỷ lệ rời bỏ của khách hàng (Customer Churn Rate) - AI for Marketing",
+    version="1.0.0",
+    lifespan=lifespan
+)
+
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
+# ============================================================================
+# Định nghĩa Pydantic Schemas cho Input/Output Validation
+# ============================================================================
+
+class CustomerInput(BaseModel):
+    CreditScore: int = Field(..., ge=300, le=850, description="Điểm tín dụng của khách hàng", json_schema_extra={"example": 619})
+    Geography: str = Field(..., description="Quốc gia của khách hàng (France, Germany, Spain)", json_schema_extra={"example": "France"})
+    Gender: str = Field(..., description="Giới tính của khách hàng (Male, Female)", json_schema_extra={"example": "Female"})
+    Age: int = Field(..., ge=18, le=100, description="Tuổi của khách hàng", json_schema_extra={"example": 42})
+    Tenure: int = Field(..., ge=0, le=10, description="Số năm gắn bó của khách hàng với ngân hàng", json_schema_extra={"example": 2})
+    Balance: float = Field(..., ge=0.0, description="Số dư tài khoản", json_schema_extra={"example": 0.0})
+    NumOfProducts: int = Field(..., ge=1, le=4, description="Số lượng sản phẩm khách hàng đang sử dụng", json_schema_extra={"example": 1})
+    HasCrCard: int = Field(..., ge=0, le=1, description="Khách hàng có thẻ tín dụng hay không (0: Không, 1: Có)", json_schema_extra={"example": 1})
+    IsActiveMember: int = Field(..., ge=0, le=1, description="Khách hàng có hoạt động tích cực không (0: Không, 1: Có)", json_schema_extra={"example": 1})
+    EstimatedSalary: float = Field(..., ge=0.0, description="Mức lương ước tính hàng năm", json_schema_extra={"example": 101348.88})
+
+class PredictionOutput(BaseModel):
+    churn: str = Field(..., description="Kết quả dự đoán rời bỏ (Yes: Rời bỏ, No: Ở lại)")
+    probability: float = Field(..., description="Xác suất rời bỏ của khách hàng (từ 0.0 đến 1.0)")
+    model_name: str = Field(..., description="Tên mô hình học máy được sử dụng để dự đoán")
 
 # ============================================================================
 # API Endpoints
@@ -95,14 +101,9 @@ def load_model():
 @app.get("/", tags=["General"])
 def read_root():
     """
-    Trang chào mừng API.
+    Trang chào mừng API và Giao diện Dashboard.
     """
-    return {
-        "message": "Chào mừng bạn đến với Customer Churn Prediction API!",
-        "docs_url": "/docs",
-        "health_check": "/health",
-        "status": "Running"
-    }
+    return FileResponse("static/index.html")
 
 @app.get("/health", tags=["General"])
 def health_check():
@@ -223,3 +224,7 @@ def predict(payload: CustomerInput):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Đã xảy ra lỗi hệ thống khi xử lý yêu cầu: {str(e)}"
         )
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run("app:app", host="0.0.0.0", port=8000, reload=True)
