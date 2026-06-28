@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ChurnShield - AI Customer Churn Predictor</title>
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- App Styles -->
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="background-decor">
+        <div class="glow-sphere glow-1"></div>
+        <div class="glow-sphere glow-2"></div>
+    </div>
+
+    <div class="dashboard-container">
+        <!-- Header -->
+        <header class="dashboard-header glass-panel">
+            <div class="logo">
+                <i class="fa-solid fa-shield-halved logo-icon"></i>
+                <div class="logo-text">
+                    <h1>Churn<span>Shield</span></h1>
+                    <p>AI Customer Churn Analytics</p>
+                </div>
+            </div>
+            <div class="model-badge-container">
+                <div class="status-indicator">
+                    <span class="pulse-dot"></span>
+                    <span class="status-text">Server: Online</span>
+                </div>
+                <div id="model-info" class="model-info-badge">
+                    <i class="fa-solid fa-microchip"></i>
+                    <span id="active-model">Loading Model...</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content Grid -->
+        <main class="dashboard-grid">
+            
+            <!-- Left Side: Inputs & Config -->
+            <section class="config-panel glass-panel">
+                <div class="section-title">
+                    <i class="fa-solid fa-sliders"></i>
+                    <h2>Customer Profile</h2>
+                </div>
+
+                <!-- Presets -->
+                <div class="preset-section">
+                    <span class="preset-label">Quick Presets:</span>
+                    <div class="preset-buttons">
+                        <button type="button" class="preset-btn" onclick="loadPreset('loyal')">
+                            <i class="fa-solid fa-circle-check loyal-color"></i> Loyal
+                        </button>
+                        <button type="button" class="preset-btn" onclick="loadPreset('high_risk')">
+                            <i class="fa-solid fa-circle-exclamation danger-color"></i> High Risk
+                        </button>
+                        <button type="button" class="preset-btn" onclick="loadPreset('average')">
+                            <i class="fa-solid fa-circle-minus average-color"></i> Average
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Prediction Form -->
+                <form id="churn-form" class="churn-form">
+                    <div class="form-grid">
+                        
+                        <!-- Credit Score Slider -->
+                        <div class="form-group col-span-2">
+                            <div class="slider-header">
+                                <label for="CreditScore">Credit Score</label>
+                                <span id="credit-val" class="slider-value">650</span>
+                            </div>
+                            <input type="range" id="CreditScore" name="CreditScore" min="300" max="850" value="650" class="styled-slider">
+                            <div class="slider-labels">
+                                <span>300 (Poor)</span>
+                                <span>850 (Excellent)</span>
+                            </div>
+                        </div>
+
+                        <!-- Age Slider -->
+                        <div class="form-group col-span-2">
+                            <div class="slider-header">
+                                <label for="Age">Age</label>
+                                <span id="age-val" class="slider-value">38</span>
+                            </div>
+                            <input type="range" id="Age" name="Age" min="18" max="100" value="38" class="styled-slider">
+                            <div class="slider-labels">
+                                <span>18 years</span>
+                                <span>100 years</span>
+                            </div>
+                        </div>
+
+                        <!-- Geography Select -->
+                        <div class="form-group">
+                            <label for="Geography">Geography</label>
+                            <div class="select-wrapper">
+                                <select id="Geography" name="Geography" required>
+                                    <option value="France">France</option>
+                                    <option value="Germany">Germany</option>
+                                    <option value="Spain">Spain</option>
+                                </select>
+                                <i class="fa-solid fa-chevron-down select-arrow"></i>
+                            </div>
+                        </div>
+
+                        <!-- Gender Select -->
+                        <div class="form-group">
+                            <label for="Gender">Gender</label>
+                            <div class="select-wrapper">
+                                <select id="Gender" name="Gender" required>
+                                    <option value="Male">Male</option>
+                                    <option value="Female">Female</option>
+                                </select>
+                                <i class="fa-solid fa-chevron-down select-arrow"></i>
+                            </div>
+                        </div>
+
+                        <!-- Tenure Slider -->
+                        <div class="form-group col-span-2">
+                            <div class="slider-header">
+                                <label for="Tenure">Tenure (Years with Bank)</label>
+                                <span id="tenure-val" class="slider-value">5</span>
+                            </div>
+                            <input type="range" id="Tenure" name="Tenure" min="0" max="10" value="5" class="styled-slider">
+                            <div class="slider-labels">
+                                <span>0 Years</span>
+                                <span>10 Years</span>
+                            </div>
+                        </div>
+
+                        <!-- Balance Input -->
+                        <div class="form-group">
+                            <label for="Balance">Account Balance (€)</label>
+                            <div class="input-wrapper">
+                                <i class="fa-solid fa-euro-sign input-icon"></i>
+                                <input type="number" id="Balance" name="Balance" min="0" step="0.01" value="0.00" required>
+                            </div>
+                        </div>
+
+                        <!-- Estimated Salary Input -->
+                        <div class="form-group">
+                            <label for="EstimatedSalary">Estimated Salary (€)</label>
+                            <div class="input-wrapper">
+                                <i class="fa-solid fa-wallet input-icon"></i>
+                                <input type="number" id="EstimatedSalary" name="EstimatedSalary" min="0" step="0.01" value="50000.00" required>
+                            </div>
+                        </div>
+
+                        <!-- NumOfProducts Select -->
+                        <div class="form-group col-span-2">
+                            <label for="NumOfProducts">Number of Products</label>
+                            <div class="products-selector">
+                                <input type="radio" id="prod-1" name="NumOfProducts" value="1" checked>
+                                <label for="prod-1">1 Product</label>
+                                
+                                <input type="radio" id="prod-2" name="NumOfProducts" value="2">
+                                <label for="prod-2">2 Products</label>
+                                
+                                <input type="radio" id="prod-3" name="NumOfProducts" value="3">
+                                <label for="prod-3">3 Products</label>
+                                
+                                <input type="radio" id="prod-4" name="NumOfProducts" value="4">
+                                <label for="prod-4">4 Products</label>
+                            </div>
+                        </div>
+
+                        <!-- Switch Toggles -->
+                        <div class="form-group toggle-group">
+                            <label class="switch-container">
+                                <span class="switch-label">Has Credit Card</span>
+                                <input type="checkbox" id="HasCrCard" name="HasCrCard" checked>
+                                <span class="switch-slider"></span>
+                            </label>
+                        </div>
+
+                        <div class="form-group toggle-group">
+                            <label class="switch-container">
+                                <span class="switch-label">Is Active Member</span>
+                                <input type="checkbox" id="IsActiveMember" name="IsActiveMember" checked>
+                                <span class="switch-slider"></span>
+                            </label>
+                        </div>
+
+                    </div>
+
+                    <!-- Submit Button -->
+                    <button type="submit" id="submit-btn" class="submit-btn">
+                        <span class="btn-content">
+                            <i class="fa-solid fa-chart-line"></i>
+                            Analyze Churn Risk
+                        </span>
+                        <span class="btn-glow"></span>
+                    </button>
+                </form>
+            </section>
+
+            <!-- Right Side: Results -->
+            <section class="results-panel glass-panel">
+                <div class="section-title">
+                    <i class="fa-solid fa-square-poll-vertical"></i>
+                    <h2>Analysis Results</h2>
+                </div>
+
+                <!-- Default State -->
+                <div id="results-placeholder" class="results-placeholder">
+                    <div class="placeholder-icon">
+                        <i class="fa-solid fa-brain-circuit animate-float"></i>
+                    </div>
+                    <h3>Ready for Prediction</h3>
+                    <p>Configure the customer's attributes on the left and click <strong>Analyze Churn Risk</strong> to calculate their probability of leaving the bank.</p>
+                </div>
+
+                <!-- Loading State -->
+                <div id="results-loader" class="results-loader hidden">
+                    <div class="spinner">
+                        <div class="double-bounce1"></div>
+                        <div class="double-bounce2"></div>
+                    </div>
+                    <p>Consulting ML models...</p>
+                </div>
+
+                <!-- Results Output State -->
+                <div id="results-content" class="results-content hidden">
+                    
+                    <!-- Circular Gauge -->
+                    <div class="gauge-container">
+                        <svg class="gauge" viewBox="0 0 200 200">
+                            <circle class="gauge-bg" cx="100" cy="100" r="80"></circle>
+                            <circle id="gauge-progress" class="gauge-progress" cx="100" cy="100" r="80"></circle>
+                        </svg>
+                        <div class="gauge-center">
+                            <span id="risk-percentage" class="percentage">0%</span>
+                            <span class="label">Churn Probability</span>
+                        </div>
+                    </div>
+
+                    <!-- Risk Alert Badge -->
+                    <div id="risk-badge" class="risk-badge">
+                        <i id="risk-icon" class="fa-solid"></i>
+                        <div class="risk-badge-text">
+                            <span class="badge-title">Risk Assessment</span>
+                            <span id="risk-status" class="badge-status">Analyzing...</span>
+                        </div>
+                    </div>
+
+                    <!-- Analysis Insights -->
+                    <div class="insights-card">
+                        <h4><i class="fa-solid fa-lightbulb"></i> Critical Risk Factors</h4>
+                        <ul id="insights-list" class="insights-list">
+                            <!-- Populated via javascript -->
+                        </ul>
+                    </div>
+
+                    <!-- Action Items -->
+                    <div class="retention-card">
+                        <h4><i class="fa-solid fa-handshake-angle"></i> Retention Recommendations</h4>
+                        <p id="recommendation-text">Loading action plans...</p>
+                    </div>
+
+                    <!-- Metadata Footer -->
+                    <div class="results-footer">
+                        <span>Prediction served by: <strong id="serving-model">XGBoost</strong></span>
+                        <span>F1 Score: <strong id="model-f1">N/A</strong></span>
+                    </div>
+
+                </div>
+            </section>
+        </main>
+        
+        <footer class="footer">
+            <p>ChurnShield Customer Retention Tool • Built with FastAPI, XGBoost, and MLflow</p>
+            <p class="author">MSSV: 2221050021 - Trần Tuấn Việt</p>
+        </footer>
+    </div>
+
+    <!-- Script Application -->
+    <script src="/static/app.js"></script>
+</body>
+</html>
