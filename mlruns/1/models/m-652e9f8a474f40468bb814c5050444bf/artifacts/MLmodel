@@ -1,0 +1,23 @@
+artifact_path: /home/viettt0119/pytorch-cv-learning/prj_1/Customer-Churn-Rate---AI-for-Marketing-HUMG-/mlruns/1/models/m-652e9f8a474f40468bb814c5050444bf/artifacts
+flavors:
+  python_function:
+    env:
+      conda: conda.yaml
+      virtualenv: python_env.yaml
+    loader_module: mlflow.sklearn
+    model_path: model.pkl
+    predict_fn: predict
+    python_version: 3.12.13
+  sklearn:
+    code: null
+    pickled_model: model.pkl
+    serialization_format: pickle
+    sklearn_version: 1.9.0
+    skops_trusted_types: null
+mlflow_version: 3.14.0
+model_id: m-652e9f8a474f40468bb814c5050444bf
+model_size_bytes: 794
+model_uuid: m-652e9f8a474f40468bb814c5050444bf
+prompts: null
+run_id: f7cbbf107f8048c8a123529bfa76ea46
+utc_time_created: '2026-06-28 16:31:43.642118'
